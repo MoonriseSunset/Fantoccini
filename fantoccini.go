@@ -1,26 +1,37 @@
 package main
 
 import (
-	"fmt"
+	"fmt"			//For printing
 
 	//"unicode"
-	"strconv"
-	"strings"
+	"math"			//For Ternary to Decimal conversion
 
-	//"os"
+	"strconv" 		//Conversion to and from string type
+	"strings" 		//Addtl string functions
+	"slices" 		//Slice manipulation
+
+	//"reflect" 	//For returning the type of a variable
+
+	"os"			//For file I/O
 )
 
 //CONFIG:
-//const fromFile = false
+const fromFile = true
 
-//Encode and Decode modes: s for string, n for decimal/integer/hex/octal/binary
+//Encode modes: s for string, n for decimal/integer/hex/octal/binary
 const encodeMode = "s"
+
+//Decode modes: s for string, d for decimal, h for hex, o for octal, b for binary
 const decodeMode = "s"
 
 // ---------------------------
 
 //INPUT:
-var input = "Hello, World!"
+// if opening a file, place the raw txt in the same directory as the go file, otherwise, just type text into the input variable
+var input = "output.txt"
+
+//name of the output file
+var outputName = "decoded.txt"
 
 // ---------------------------
 
@@ -28,8 +39,8 @@ var input = "Hello, World!"
 
 var(
 
-	charmap = [3]string{"▌", "▖", "▘"}
-	decodemap = [3]string{"▖", "▘", "▌"}
+	charmap = []string{"▌", "▖", "▘"}
+	decodemap = []string{"▖", "▘", "▌"}
 
 )
 
@@ -72,7 +83,7 @@ func numToDollcode(input string) string {
 	multiplier, err := strconv.ParseInt(input,0,32)
 	
 	if (err != nil) {
-		fmt.Println("Error in string to float conversion! ")
+		fmt.Println("Error in string to number conversion! ")
 		fmt.Println(err)
 		return "error, check console"
 	}
@@ -104,6 +115,52 @@ func stringToDollcode(input string) string {
 	return condense(intermediate, false, true)
 }
 
+func dollcodeToNum(input string, mode string) string {
+
+	ternary := []int{}
+	p := 0
+	dec := 0.0
+	base := 10
+
+	switch (mode){
+		case "d":
+			base = 10
+		case "h":
+			base = 16
+		case "o":
+			base = 8
+		case "b":
+			base = 2
+		default:
+			base = 10
+
+		}
+
+	for _, d := range slices.DeleteFunc(strings.Split(input, ""), func(x string) bool { return x == " " }) {
+		ternary = append(ternary, slices.Index(decodemap,d)+1)
+	}
+
+	for i := len(ternary)-1; i >= 0; i-- {
+		dec += math.Pow(3,float64(p))*float64(ternary[i])
+		p += 1
+	}
+
+	return strconv.FormatInt(int64(dec),base)
+}
+
+func dollcodeToString(input string) string {
+	var unit []rune
+	word := strings.Split(input, " ")
+
+	for _, w := range word{
+
+		U, _ := strconv.ParseInt(dollcodeToNum(w,"d"),10,64)
+
+		unit = append(unit, rune(U))
+	}
+	return string(unit)
+}
+
 //Primary Functions
 func encode(input string) string {
 
@@ -127,18 +184,22 @@ func decode(input string) string {
 	var output string
 
 	switch decodeMode {
-		case "s":
-			output = "string"
 		case "d":
-			output = "decimal"
+			output = dollcodeToNum(input,"d")
 		case "h":
-			output = "hexidecimal"
+			output = dollcodeToNum(input,"h")
+		case "o":
+			output = dollcodeToNum(input,"o")
+		case "b":
+			output = dollcodeToNum(input,"b")
+		case "s":
+			output = dollcodeToString(input)
 		default:
 			output = "Error: unknown type"
 
 	}
 
-	fmt.Println(input)
+	//fmt.Println(input)
 
 	return output
 }
@@ -159,7 +220,25 @@ func translate(input string) string {
 func main() {
 
 	fmt.Println("Starting...")
-	fmt.Println(translate(input))
+	if(fromFile) {
+		data, err := os.ReadFile(input)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			input = string(data)
+		}
+
+		file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer file.Close()
+
+		file.WriteString(translate(input))
+	} else{
+		fmt.Println(translate(input))
+	}
+	
 	fmt.Println("Done.")
 
 }

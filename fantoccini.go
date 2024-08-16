@@ -28,10 +28,10 @@ const decodeMode = "s"
 
 //INPUT:
 // if opening a file, place the raw txt in the same directory as the go file, otherwise, just type text into the input variable
-var input = "output.txt"
+var input = ""
 
 //name of the output file
-var outputName = "decoded.txt"
+var outputName = ""
 
 // ---------------------------
 
@@ -233,6 +233,7 @@ func main() {
 			fmt.Println(err)
 		}
 		defer file.Close()
+		fmt.Println("Created File, starting translation")
 
 		file.WriteString(translate(input))
 	} else{

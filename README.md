@@ -43,7 +43,7 @@ The timer function used in Fantoccini originated from [this post on coderwall](h
 
 Marionette, Puppeteer, and Fantoccini Dollcode generators are heavily inspired by [noe's dollcode standard and generator](https://noe.sh/dollcode/).
 
-**I am not a doll, nor claim responsibility for any implications with the lore of dolls or the Voidgoddess site** A close friend of mine *is* a doll and introduced me to dollcode. I found the modified ternary structure interesting, and decided to create the 3 translation suites for practice and as an exploration of the capabilities of these coding languages.
+**I am not a doll, nor claim responsibility for any implications with the lore of dolls or the Voidgoddess site**. A close friend of mine *is* a doll and introduced me to dollcode. I found the modified ternary structure interesting, and decided to create the 3 translation suites for practice and as an exploration of the capabilities of these coding languages.
 
 # TO-DO:
 

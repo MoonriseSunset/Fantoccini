@@ -17,6 +17,10 @@ import (
 
 //CONFIG:
 const fromFile = true
+const toFile = true
+
+//Verbose Console Output
+const verboseConsole = true
 
 //Encode modes: s for string, n for decimal/integer/hex/octal/binary
 const encodeMode = "s"
@@ -24,19 +28,21 @@ const encodeMode = "s"
 //Decode modes: s for string, d for decimal, h for hex, o for octal, b for binary
 const decodeMode = "s"
 
+//NOTE: If you are NOT translating from file, Fantoccini will DISABLE multithreading on the input
+//Number of processes to run
+const processes = 950
+
 // ---------------------------
 
 //INPUT:
-// if opening a file, place the raw txt in the same directory as the go file, otherwise, just type text into the input variable
-var input = ""
+// if opening a file, place the raw txt in the same directory as the go file 
+// otherwise, just type text into the input variable
+var input = "kjv.txt"
 
 //name of the output file
-var outputName = ""
-
-// ---------------------------
+var outputName = "e.txt"
 
 //Misc variables:
-
 var(
 
 	charmap = []string{"▌", "▖", "▘"}
@@ -217,10 +223,34 @@ func translate(input string) string {
 	return output
 }
 
+func threadedTranslate(input string, o chan string) {
+
+	var output string
+
+	if (strings.Contains(input,decodemap[0]) || strings.Contains(input,decodemap[1]) || strings.Contains(input,decodemap[2])) {
+		output = decode(input)
+	} else{
+		output = encode(input)
+	}
+	o <- output
+	if(verboseConsole) {
+		fmt.Println("process finished!")
+	}
+}
+
 func main() {
+
+	var frame string
+	var outputs []string
+
+	processNum := 0
+
+	channels := make([]chan string, processes)
 
 	fmt.Println("Starting...")
 	if(fromFile) {
+
+		//Read from file
 		data, err := os.ReadFile(input)
 		if err != nil {
 			fmt.Println(err)
@@ -232,14 +262,62 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+		//Close the file once we're done
 		defer file.Close()
-		fmt.Println("Created File, starting translation")
 
-		file.WriteString(translate(input))
+		fmt.Println("Created File, starting translation")
+		if (strings.Contains(input,decodemap[0]) || strings.Contains(input,decodemap[1]) || strings.Contains(input,decodemap[2])) {
+			fmt.Println("Decoding...")
+			
+			if(toFile) {
+				fmt.Println("Writing to file")
+				file.WriteString(translate(input)) //Write to file with single thread if decoding
+			} else{
+				fmt.Println(translate(input))
+			}
+			
+		} else{
+			if(processes > 1 && fromFile) {
+				fmt.Println("Splitting input in " + strconv.Itoa(processes) + " pieces")
+
+				//We convert the input into a slice of runes for reliability with special characters
+				loaf := []rune(input)
+				for i, r := range loaf {
+
+					//Convert rune of input back to string
+					frame += string(r)
+					if(i>0 && (i+1)%(len(loaf)/processes)==0) {
+
+						if(verboseConsole) {
+							fmt.Println("Starting process " + strconv.Itoa(processNum+1))
+							fmt.Println("Process is operating on " + strconv.Itoa(len(frame)) + " characters")
+						}
+						
+						//Creating GoRoutine and Starting it
+						channels[processNum] = make(chan string)
+						go threadedTranslate(frame, channels[processNum])
+						outputs = append(outputs, <-channels[processNum])
+
+						//Clear frame and increment index
+						frame = ""
+						processNum += 1
+					}
+				}
+				if(toFile) {
+					fmt.Println("Writing to file")
+					file.WriteString(condense(outputs, false, false))	
+				} else{
+					fmt.Println(outputs)
+				}
+			} else{
+				file.WriteString(translate(input)) //Write to file with single thread
+			}
+		} 
+		
+
 	} else{
 		fmt.Println(translate(input))
 	}
-	
 	fmt.Println("Done.")
 
 }

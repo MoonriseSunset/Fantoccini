@@ -5,6 +5,7 @@ import (
 
 	//"unicode"
 	"math"			//For Ternary to Decimal conversion
+	"time"
 
 	"strconv" 		//Conversion to and from string type
 	"strings" 		//Addtl string functions
@@ -20,7 +21,7 @@ const fromFile = true
 const toFile = true
 
 //Verbose Console Output
-const verboseConsole = true
+const verboseConsole = false
 
 //Encode modes: s for string, n for decimal/integer/hex/octal/binary
 const encodeMode = "s"
@@ -30,17 +31,17 @@ const decodeMode = "s"
 
 //NOTE: If you are NOT translating from file, Fantoccini will DISABLE multithreading on the input
 //Number of processes to run
-const processes = 950
+const processes = 10
 
 // ---------------------------
 
 //INPUT:
 // if opening a file, place the raw txt in the same directory as the go file 
 // otherwise, just type text into the input variable
-var input = "kjv.txt"
+var input = ""
 
 //name of the output file
-var outputName = "e.txt"
+var outputName = ""
 
 //Misc variables:
 var(
@@ -55,6 +56,11 @@ var(
 //Functions
 
 //Helper functions
+
+func Timer(start time.Time, name string) {
+    elapsed := time.Since(start)
+    fmt.Printf("%s took %s", name, elapsed)
+}
 
 func condense(input []string, reversed bool, spaced bool) string {
 
@@ -249,6 +255,8 @@ func main() {
 
 	fmt.Println("Starting...")
 	if(fromFile) {
+
+		defer Timer(time.Now(), "Translation")
 
 		//Read from file
 		data, err := os.ReadFile(input)

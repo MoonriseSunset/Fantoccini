@@ -1,24 +1,29 @@
+/*
+Fantoccini: A Dollcode Translation Suite in Go
+Written By MoonriseSunset
+
+Documentation here: https://github.com/MoonriseSunset/Fantoccini
+
+Last edited: 8/17/2024
+*/
 package main
+import ("fmt"; "math"; "time"; "strconv"; "slices"; "strings"; "os")			//For Ternary to Decimal conversion
 
-import (
-	"fmt"			//For printing
+//INPUT:
+// if opening a file, place the raw txt in the same directory as the go file 
+// otherwise, just type text into the input variable
+var input = ""
 
-	//"unicode"
-	"math"			//For Ternary to Decimal conversion
-	"time"
-
-	"strconv" 		//Conversion to and from string type
-	"strings" 		//Addtl string functions
-	"slices" 		//Slice manipulation
-
-	//"reflect" 	//For returning the type of a variable
-
-	"os"			//For file I/O
-)
+//name of the output file, if applicable
+var outputName = ""
 
 //CONFIG:
-const fromFile = true
-const toFile = true
+
+//To have simple input and output, set simpleMode to true, which disables using files entirely
+const simpleMode = true
+
+var fromFile = true
+var toFile = true
 
 //Verbose Console Output
 const verboseConsole = false
@@ -30,31 +35,20 @@ const encodeMode = "s"
 const decodeMode = "s"
 
 //NOTE: If you are NOT translating from file, Fantoccini will DISABLE multithreading on the input
+//2ND NOTE: The decode functionality is SINGLE THREADED irregardless, due to how fast it can decode.
 //Number of processes to run
 const processes = 10
 
-// ---------------------------
 
-//INPUT:
-// if opening a file, place the raw txt in the same directory as the go file 
-// otherwise, just type text into the input variable
-var input = ""
 
-//name of the output file
-var outputName = ""
-
-//Misc variables:
+// END OF CONFIG, DO NOT EDIT BELOW THIS POINT
+//Primary Variables:
 var(
 
 	charmap = []string{"▌", "▖", "▘"}
 	decodemap = []string{"▖", "▘", "▌"}
 
 )
-
-// ---------------------------
-
-//Functions
-
 //Helper functions
 
 func Timer(start time.Time, name string) {
@@ -246,6 +240,15 @@ func threadedTranslate(input string, o chan string) {
 
 func main() {
 
+	//Config Parsing:
+
+	if(simpleMode){
+		fromFile = false
+		toFile = false
+	}
+
+	// ------------------------
+
 	var frame string
 	var outputs []string
 
@@ -254,6 +257,7 @@ func main() {
 	channels := make([]chan string, processes)
 
 	fmt.Println("Starting...")
+
 	if(fromFile) {
 
 		defer Timer(time.Now(), "Translation")
@@ -266,6 +270,7 @@ func main() {
 			input = string(data)
 		}
 
+		//Create and/or set up output file
 		file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			fmt.Println(err)
@@ -274,6 +279,8 @@ func main() {
 		defer file.Close()
 
 		fmt.Println("Created File, starting translation")
+
+		//If the input contains dollcode characters, automatically switch to decoding.
 		if (strings.Contains(input,decodemap[0]) || strings.Contains(input,decodemap[1]) || strings.Contains(input,decodemap[2])) {
 			fmt.Println("Decoding...")
 			
@@ -284,8 +291,8 @@ func main() {
 				fmt.Println(translate(input))
 			}
 			
-		} else{
-			if(processes > 1 && fromFile) {
+		} else{											//Otherwise, encode the input to dollcode
+			if(processes > 1) {				//If we're using multiple processes and pulling from file, start multithreading.
 				fmt.Println("Splitting input in " + strconv.Itoa(processes) + " pieces")
 
 				//We convert the input into a slice of runes for reliability with special characters
@@ -317,14 +324,26 @@ func main() {
 				} else{
 					fmt.Println(outputs)
 				}
-			} else{
+			} else{ //Singlethreaded process
 				file.WriteString(translate(input)) //Write to file with single thread
 			}
 		} 
 		
 
 	} else{
-		fmt.Println(translate(input))
+		if(toFile) {
+			//Create and/or set up output file
+			file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
+			if err != nil {
+				fmt.Println(err)
+			}
+			//Close the file once we're done
+			defer file.Close()
+
+			file.WriteString(translate(input)) //Write to file with single thread
+		} else{
+			fmt.Println(translate(input))
+		}
 	}
 	fmt.Println("Done.")
 

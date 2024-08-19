@@ -2,7 +2,7 @@
 Fantoccini: A Dollcode Translation Suite in Go
 Written By MoonriseSunset
 
-Documentation here: https://github.com/MoonriseSunset/Fantoccini
+Documentation here: https://github.com/MoonriseSunset/Fantoccini/blob/main/README.md
 
 Last edited: 8/17/2024
 */
@@ -35,7 +35,7 @@ const encodeMode = "s"
 const decodeMode = "s"
 
 //NOTE: If you are NOT translating from file, Fantoccini will DISABLE multithreading on the input
-//2ND NOTE: The decode functionality is SINGLE THREADED irregardless, due to how fast it can decode.
+//2ND NOTE: The decode functionality is SINGLE THREADED regardless, due to how fast it can decode.
 //Number of processes to run
 const processes = 10
 
@@ -84,8 +84,6 @@ func numToDollcode(input string) string {
 
 	intermediate := []string{}
 
-	
-	//multiplier, err := strconv.ParseFloat(input,32);
 	multiplier, err := strconv.ParseInt(input,0,32)
 	
 	if (err != nil) {
@@ -204,9 +202,6 @@ func decode(input string) string {
 			output = "Error: unknown type"
 
 	}
-
-	//fmt.Println(input)
-
 	return output
 }
 
@@ -223,7 +218,7 @@ func translate(input string) string {
 	return output
 }
 
-func threadedTranslate(input string, o chan string) {
+func threadedTranslate(input string, outputChannel chan string) {
 
 	var output string
 
@@ -232,7 +227,7 @@ func threadedTranslate(input string, o chan string) {
 	} else{
 		output = encode(input)
 	}
-	o <- output
+	outputChannel <- output
 	if(verboseConsole) {
 		fmt.Println("process finished!")
 	}
@@ -291,7 +286,7 @@ func main() {
 				fmt.Println(translate(input))
 			}
 			
-		} else{											//Otherwise, encode the input to dollcode
+		} else{								//Otherwise, encode the input to dollcode
 			if(processes > 1) {				//If we're using multiple processes and pulling from file, start multithreading.
 				fmt.Println("Splitting input in " + strconv.Itoa(processes) + " pieces")
 

@@ -4,7 +4,7 @@ Written By MoonriseSunset
 
 Documentation here: https://github.com/MoonriseSunset/Fantoccini/blob/main/README.md
 
-Last edited: 8/17/2024
+Last edited: 8/20/2024
 */
 package main
 import ("fmt"; "math"; "time"; "strconv"; "slices"; "strings"; "os")			//For Ternary to Decimal conversion
@@ -37,7 +37,7 @@ const decodeMode = "s"
 //NOTE: If you are NOT translating from file, Fantoccini will DISABLE multithreading on the input
 //2ND NOTE: The decode functionality is SINGLE THREADED regardless, due to how fast it can decode.
 //Number of processes to run
-const processes = 10
+const processes = 1
 
 
 
@@ -80,6 +80,7 @@ func condense(input []string, reversed bool, spaced bool) string {
 
 	return output
 }
+
 func numToDollcode(input string) string {
 
 	intermediate := []string{}
@@ -244,8 +245,11 @@ func main() {
 
 	// ------------------------
 
-	var frame string
-	var outputs []string
+	var(
+		frame string
+		outputs []string
+		finalOutput string
+	)
 
 	processNum := 0
 
@@ -253,51 +257,28 @@ func main() {
 
 	fmt.Println("Starting...")
 
+	defer Timer(time.Now(), "Total file and translation time")
+
 	if(fromFile) {
-
-		defer Timer(time.Now(), "Translation")
-
 		//Read from file
 		data, err := os.ReadFile(input)
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			input = string(data)
-		}
+			fmt.Println("Read from file successfully")
 
-		//Create and/or set up output file
-		file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
-		//Close the file once we're done
-		defer file.Close()
-
-		fmt.Println("Created File, starting translation")
-
-		//If the input contains dollcode characters, automatically switch to decoding.
-		if (strings.Contains(input,decodemap[0]) || strings.Contains(input,decodemap[1]) || strings.Contains(input,decodemap[2])) {
-			fmt.Println("Decoding...")
-			
-			if(toFile) {
-				fmt.Println("Writing to file")
-				file.WriteString(translate(input)) //Write to file with single thread if decoding
-			} else{
-				fmt.Println(translate(input))
-			}
-			
-		} else{								//Otherwise, encode the input to dollcode
-			if(processes > 1) {				//If we're using multiple processes and pulling from file, start multithreading.
+			if(processes > 1 && !strings.Contains(input,decodemap[0]) && !strings.Contains(input,decodemap[1]) && !strings.Contains(input,decodemap[2])) {
 				fmt.Println("Splitting input in " + strconv.Itoa(processes) + " pieces")
 
 				//We convert the input into a slice of runes for reliability with special characters
 				loaf := []rune(input)
 				for i, r := range loaf {
-
+	
 					//Convert rune of input back to string
 					frame += string(r)
 					if(i>0 && (i+1)%(len(loaf)/processes)==0) {
-
+	
 						if(verboseConsole) {
 							fmt.Println("Starting process " + strconv.Itoa(processNum+1))
 							fmt.Println("Process is operating on " + strconv.Itoa(len(frame)) + " characters")
@@ -307,39 +288,37 @@ func main() {
 						channels[processNum] = make(chan string)
 						go threadedTranslate(frame, channels[processNum])
 						outputs = append(outputs, <-channels[processNum])
-
+	
 						//Clear frame and increment index
 						frame = ""
 						processNum += 1
 					}
 				}
-				if(toFile) {
-					fmt.Println("Writing to file")
-					file.WriteString(condense(outputs, false, false))	
-				} else{
-					fmt.Println(outputs)
-				}
-			} else{ //Singlethreaded process
-				file.WriteString(translate(input)) //Write to file with single thread
-			}
-		} 
-		
+
+				finalOutput = condense(outputs, false, false)
+
+			} else{
+
+				fmt.Println("Performing single thread translation")
+				finalOutput = translate(input)
+			}	
+		}
+	} else{
+		fmt.Println("Performing single thread translation")
+		finalOutput = translate(input)
+	}
+
+	if(toFile){
+		file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			fmt.Println(err)
+		}
+		//Close the file once we're done
+		defer file.Close()
+		fmt.Println("Created File, writing to it")
+		file.WriteString(finalOutput)
 
 	} else{
-		if(toFile) {
-			//Create and/or set up output file
-			file, err := os.OpenFile(outputName, os.O_WRONLY|os.O_CREATE, 0644)
-			if err != nil {
-				fmt.Println(err)
-			}
-			//Close the file once we're done
-			defer file.Close()
-
-			file.WriteString(translate(input)) //Write to file with single thread
-		} else{
-			fmt.Println(translate(input))
-		}
+		fmt.Println(finalOutput)
 	}
-	fmt.Println("Done.")
-
 }
